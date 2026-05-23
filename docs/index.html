@@ -550,17 +550,13 @@
     .footer-links a:hover { color: var(--text-2); }
     .footer-copy { font-size: 0.78rem; color: var(--text-3); }
 
-    /* ─── REVEAL ANIMATIONS ─── */
-    .reveal {
-      opacity: 0; transform: translateY(24px);
-      transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1),
-                  transform 0.7s cubic-bezier(0.16,1,0.3,1);
-    }
+    /* ─── REVEAL ANIMATIONS (driven by GSAP, CSS fallback only) ─── */
+    .reveal { }
     .reveal.visible { opacity: 1; transform: none; }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-    .reveal-delay-4 { transition-delay: 0.4s; }
+    .reveal-delay-1 { }
+    .reveal-delay-2 { }
+    .reveal-delay-3 { }
+    .reveal-delay-4 { }
 
     /* ─── WHAT'S NEW SHOWCASE ─── */
     .whats-new { background: var(--bg-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -1409,6 +1405,9 @@
 </footer>
 
 <script>
+  // Safety: ensure all elements are visible even if GSAP fails to load
+  document.querySelectorAll('.reveal').forEach(el => el.style.opacity = '1');
+
   gsap.registerPlugin(ScrollTrigger);
 
   // ── Wheel item orbit (keep rAF for continuous rotation) ──────────────────
