@@ -722,8 +722,7 @@
       .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <!-- GSAP loaded dynamically at end of body -->
 </head>
 <body>
 
@@ -1405,28 +1404,23 @@
 </footer>
 
 <script>
-  // Safety: ensure all elements are visible even if GSAP fails to load
-  document.querySelectorAll('.reveal').forEach(el => el.style.opacity = '1');
-
-  gsap.registerPlugin(ScrollTrigger);
-
-  // ── Wheel item orbit (keep rAF for continuous rotation) ──────────────────
+  // ── Wheel item orbit (no GSAP needed, pure rAF) ─────────────────────────
   (function () {
-    const wrap  = document.getElementById('wheelWrap');
-    const items = [
+    var wrap = document.getElementById('wheelWrap');
+    if (!wrap) return;
+    var items = [
       document.getElementById('wi0'), document.getElementById('wi1'),
       document.getElementById('wi2'), document.getElementById('wi3'),
     ];
-    const RADIUS = 172, DURATION = 30000, TWO_PI = Math.PI * 2;
-    const baseAngles = items.map((_, i) => (i / items.length) * TWO_PI - Math.PI / 2);
-    let startTs = null;
+    var RADIUS = 172, DURATION = 30000, TWO_PI = Math.PI * 2;
+    var baseAngles = items.map(function(_, i) { return (i / items.length) * TWO_PI - Math.PI / 2; });
+    var startTs = null;
     function tick(ts) {
       if (!startTs) startTs = ts;
-      const elapsed = ts - startTs;
-      const rot = (elapsed % DURATION) / DURATION * TWO_PI;
-      const cx = wrap.offsetWidth / 2, cy = wrap.offsetHeight / 2;
-      items.forEach((el, i) => {
-        const a = baseAngles[i] + rot;
+      var rot = ((ts - startTs) % DURATION) / DURATION * TWO_PI;
+      var cx = wrap.offsetWidth / 2, cy = wrap.offsetHeight / 2;
+      items.forEach(function(el, i) {
+        var a = baseAngles[i] + rot;
         el.style.left = (cx + RADIUS * Math.cos(a)) + 'px';
         el.style.top  = (cy + RADIUS * Math.sin(a)) + 'px';
         el.style.transform = 'translate(-50%, -50%)';
@@ -1436,205 +1430,205 @@
     requestAnimationFrame(tick);
   })();
 
-  // ── Hero blobs parallax drift ───────────────────────────────────────────
-  gsap.to('.hero-blob-1', {
-    x: 80, y: 60, scale: 1.1,
-    scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1 }
-  });
-  gsap.to('.hero-blob-2', {
-    x: -70, y: -40, scale: 1.08,
-    scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1 }
-  });
+  // ── Nav scroll background (no GSAP needed) ──────────────────────────────
+  (function() {
+    var nav = document.querySelector('nav');
+    if (!nav) return;
+    window.addEventListener('scroll', function() {
+      nav.style.background = window.scrollY > 20 ? 'rgba(6,6,8,0.95)' : 'rgba(6,6,8,0.72)';
+    }, { passive: true });
+  })();
 
-  // ── Hero text: staggered fade-up ────────────────────────────────────────
-  const heroTL = gsap.timeline({ defaults: { duration: 0.8, ease: 'power3.out' } });
-  heroTL.from('.hero-badge',  { y: 30, autoAlpha: 0 })
-        .from('.hero-title',  { y: 50, autoAlpha: 0 }, '-=0.5')
-        .from('.hero-sub',    { y: 40, autoAlpha: 0 }, '-=0.5')
-        .from('.hero-actions',{ y: 30, autoAlpha: 0 }, '-=0.4')
-        .from('.wheel-glow',  { scale: 0.3, autoAlpha: 0, duration: 1.2 }, '-=0.8')
-        .from('.wheel-svg-ring', { rotation: -30, scale: 0.8, autoAlpha: 0, duration: 1.4 }, '-=1.0')
-        .from('.wheel-hub',   { scale: 0, autoAlpha: 0, duration: 0.6, ease: 'back.out(2)' }, '-=0.5')
-        .from('.wheel-item',  { scale: 0, autoAlpha: 0, stagger: 0.12, duration: 0.5, ease: 'back.out(2)' }, '-=0.3');
+  // ── Dynamic GSAP loader — non-blocking, graceful degradation ────────────
+  (function() {
+    var CDN = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/';
+    var coreLoaded = false, stLoaded = false;
 
-  // ── Stats bar: entrance + number count-up ────────────────────────────────
-  const statSpecs = [
-    { prefix: '&lt;', suffix: 'ms', val: 1 },
-    { prefix: '&lt;', suffix: 'MB', val: 3 },
-    { prefix: '',   suffix: 'fps', val: 60 },
-    { prefix: '',   suffix: '%', val: 100 },
-  ];
-  document.querySelectorAll('.stat-item').forEach((el, i) => {
-    ScrollTrigger.create({
-      trigger: el, start: 'top 90%', once: true,
-      onEnter: () => {
-        gsap.from(el, { y: 40, autoAlpha: 0, duration: 0.6, ease: 'power2.out' });
-        if (i < statSpecs.length) {
-          const s = statSpecs[i], numEl = el.querySelector('.stat-num');
-          const disp = { v: 0 };
-          gsap.to(disp, {
-            v: s.val, duration: 1.8, ease: 'power2.out',
-            onUpdate: () => {
-              numEl.innerHTML = s.prefix + '<span>' + Math.round(disp.v) + '</span>' + s.suffix;
-            }
-          });
+    function tryInit() {
+      if (coreLoaded && stLoaded) initGSAPAnimations();
+    }
+
+    function loadScript(url, onload) {
+      var s = document.createElement('script');
+      s.src = url;
+      s.onload = onload;
+      s.onerror = function() { console.warn('GSAP CDN unreachable, running without animations'); };
+      document.head.appendChild(s);
+    }
+
+    loadScript(CDN + 'gsap.min.js', function() {
+      coreLoaded = true; tryInit();
+    });
+    loadScript(CDN + 'ScrollTrigger.min.js', function() {
+      stLoaded = true; tryInit();
+    });
+
+    // Timeout: if CDN doesn't load within 5s, give up (page is already visible)
+    setTimeout(function() {
+      if (!coreLoaded || !stLoaded) {
+        console.warn('GSAP load timed out — page shown without animations');
+        coreLoaded = stLoaded = false; // prevent late init
+      }
+    }, 5000);
+  })();
+
+  function initGSAPAnimations() {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // ── Hero blobs parallax ───────────────────────────────────────────
+    gsap.to('.hero-blob-1', {
+      x: 80, y: 60, scale: 1.1,
+      scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1 }
+    });
+    gsap.to('.hero-blob-2', {
+      x: -70, y: -40, scale: 1.08,
+      scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1 }
+    });
+
+    // ── Hero text: staggered fade-up ──────────────────────────────────
+    var heroTL = gsap.timeline({ defaults: { duration: 0.8, ease: 'power3.out' } });
+    heroTL.from('.hero-badge',   { y: 30, autoAlpha: 0 })
+          .from('.hero-title',   { y: 50, autoAlpha: 0 }, '-=0.5')
+          .from('.hero-sub',     { y: 40, autoAlpha: 0 }, '-=0.5')
+          .from('.hero-actions', { y: 30, autoAlpha: 0 }, '-=0.4')
+          .from('.wheel-glow',   { scale: 0.3, autoAlpha: 0, duration: 1.2 }, '-=0.8')
+          .from('.wheel-svg-ring', { rotation: -30, scale: 0.8, autoAlpha: 0, duration: 1.4 }, '-=1.0')
+          .from('.wheel-hub',    { scale: 0, autoAlpha: 0, duration: 0.6, ease: 'back.out(2)' }, '-=0.5')
+          .from('.wheel-item',   { scale: 0, autoAlpha: 0, stagger: 0.12, duration: 0.5, ease: 'back.out(2)' }, '-=0.3');
+
+    // ── Stats counter ─────────────────────────────────────────────────
+    var statSpecs = [
+      { prefix: '&lt;', suffix: 'ms',  val: 1   },
+      { prefix: '&lt;', suffix: 'MB',  val: 3   },
+      { prefix: '',     suffix: 'fps', val: 60  },
+      { prefix: '',     suffix: '%',   val: 100 },
+    ];
+    document.querySelectorAll('.stat-item').forEach(function(el, i) {
+      ScrollTrigger.create({
+        trigger: el, start: 'top 90%', once: true,
+        onEnter: function() {
+          gsap.from(el, { y: 40, autoAlpha: 0, duration: 0.6, ease: 'power2.out' });
+          if (i < statSpecs.length) {
+            var s = statSpecs[i], numEl = el.querySelector('.stat-num');
+            var disp = { v: 0 };
+            gsap.to(disp, {
+              v: s.val, duration: 1.8, ease: 'power2.out',
+              onUpdate: function() {
+                numEl.innerHTML = s.prefix + '<span>' + Math.round(disp.v) + '</span>' + s.suffix;
+              }
+            });
+          }
         }
+      });
+    });
+
+    // ── Batch entrances ───────────────────────────────────────────────
+    ScrollTrigger.batch('.bento-card', {
+      start: 'top 85%', once: true,
+      onEnter: function(batch) {
+        gsap.from(batch, { y: 60, autoAlpha: 0, duration: 0.7, stagger: 0.1, ease: 'power3.out' });
       }
     });
-  });
-
-  // ── Bento cards: staggered entrance ─────────────────────────────────────
-  ScrollTrigger.batch('.bento-card', {
-    start: 'top 85%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, {
-        y: 60, autoAlpha: 0, duration: 0.7, stagger: 0.1,
-        ease: 'power3.out'
-      });
-    }
-  });
-
-  // ── "What's New" cards: staggered entrance ──────────────────────────────
-  ScrollTrigger.batch('.wn-card', {
-    start: 'top 82%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, {
-        y: 70, autoAlpha: 0, duration: 0.8, stagger: 0.12,
-        ease: 'power3.out'
-      });
-    }
-  });
-
-  // ── How-it-works: step-by-step reveal ───────────────────────────────────
-  ScrollTrigger.batch('.how-step', {
-    start: 'top 80%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, {
-        x: -30, autoAlpha: 0, duration: 0.6, stagger: 0.15,
-        ease: 'power2.out'
-      });
-    }
-  });
-
-  // ── Tech code window: typewriter reveal ─────────────────────────────────
-  ScrollTrigger.create({
-    trigger: '.code-window', start: 'top 75%', once: true,
-    onEnter: () => {
-      gsap.from('.code-window', {
-        y: 50, autoAlpha: 0, duration: 0.8, ease: 'power3.out',
-        onComplete: () => {
-          const lines = document.querySelectorAll('.code-body .line');
-          gsap.from(lines, {
-            autoAlpha: 0, x: -10, duration: 0.3, stagger: 0.1, ease: 'power2.out'
-          });
-        }
-      });
-    }
-  });
-
-  // ── Spec cards: staggered reveal ────────────────────────────────────────
-  ScrollTrigger.batch('.spec-card', {
-    start: 'top 85%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, {
-        scale: 0.9, autoAlpha: 0, duration: 0.5, stagger: 0.08, ease: 'back.out(1.5)'
-      });
-    }
-  });
-
-  // ── Roadmap / Changelog: timeline stagger ───────────────────────────────
-  ScrollTrigger.batch('.rm-item', {
-    start: 'top 85%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, {
-        y: 40, autoAlpha: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out'
-      });
-    }
-  });
-
-  // ── Quote card: dramatic reveal ─────────────────────────────────────────
-  ScrollTrigger.create({
-    trigger: '.quote-card', start: 'top 85%', once: true,
-    onEnter: () => {
-      gsap.from('.quote-card', { y: 60, autoAlpha: 0, duration: 1, ease: 'power3.out' });
-      gsap.from('.quote-text', { autoAlpha: 0, duration: 1.2, delay: 0.4 });
-    }
-  });
-
-  // ── Download section: scale-in + button pulse ───────────────────────────
-  ScrollTrigger.create({
-    trigger: '.dl-section', start: 'top 80%', once: true,
-    onEnter: () => {
-      const tl = gsap.timeline();
-      tl.from('.dl-section .eyebrow', { y: 30, autoAlpha: 0, duration: 0.5 })
-        .from('.dl-section .section-title', { y: 40, autoAlpha: 0, duration: 0.6 }, '-=0.3')
-        .from('.dl-section .section-sub', { y: 30, autoAlpha: 0, duration: 0.5 }, '-=0.3')
-        .from('.dl-btn', { scale: 0.8, autoAlpha: 0, duration: 0.7, ease: 'back.out(2)' }, '-=0.2')
-        .from('.dl-note', { autoAlpha: 0, duration: 0.4 }, '-=0.2');
-      // Continuous floating pulse on download button
-      gsap.to('.dl-btn', {
-        y: -6, duration: 2, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.5
-      });
-    }
-  });
-
-  // ── Section titles: underline sweep (decorative) ────────────────────────
-  ScrollTrigger.batch('.section-title', {
-    start: 'top 80%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, { y: 40, autoAlpha: 0, duration: 0.7, ease: 'power3.out' });
-    }
-  });
-  ScrollTrigger.batch('.section-sub', {
-    start: 'top 80%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, { y: 20, autoAlpha: 0, duration: 0.6, delay: 0.15, ease: 'power2.out' });
-    }
-  });
-  ScrollTrigger.batch('.eyebrow', {
-    start: 'top 82%', once: true,
-    onEnter: batch => {
-      gsap.from(batch, { y: 15, autoAlpha: 0, duration: 0.4, ease: 'power2.out' });
-    }
-  });
-
-  // ── Nav background on scroll ────────────────────────────────────────────
-  const nav = document.querySelector('nav');
-  ScrollTrigger.create({
-    start: 'top -60', end: 'max',
-    onEnter: () => { nav.style.background = 'rgba(6,6,8,0.95)'; },
-    onLeaveBack: () => { nav.style.background = 'rgba(6,6,8,0.72)'; }
-  });
-
-  // ── Architecture flow nodes ─────────────────────────────────────────────
-  ScrollTrigger.create({
-    trigger: '.arch-flow', start: 'top 85%', once: true,
-    onEnter: () => {
-      gsap.from('.arch-node', {
-        scale: 0, autoAlpha: 0, duration: 0.5, stagger: 0.1, ease: 'back.out(2)'
-      });
-    }
-  });
-
-  // ── Footer reveal ───────────────────────────────────────────────────────
-  ScrollTrigger.create({
-    trigger: 'footer', start: 'top 95%', once: true,
-    onEnter: () => {
-      gsap.from('footer .footer-inner > *', {
-        y: 20, autoAlpha: 0, duration: 0.5, stagger: 0.08
-      });
-    }
-  });
-
-  // ── Wheel hover: pulse active item ──────────────────────────────────────
-  document.querySelectorAll('.wheel-item').forEach(el => {
-    el.addEventListener('mouseenter', () => {
-      gsap.to(el, { scale: 1.08, duration: 0.3, ease: 'power2.out' });
+    ScrollTrigger.batch('.wn-card', {
+      start: 'top 82%', once: true,
+      onEnter: function(batch) {
+        gsap.from(batch, { y: 70, autoAlpha: 0, duration: 0.8, stagger: 0.12, ease: 'power3.out' });
+      }
     });
-    el.addEventListener('mouseleave', () => {
-      gsap.to(el, { scale: 1, duration: 0.3, ease: 'power2.out' });
+    ScrollTrigger.batch('.how-step', {
+      start: 'top 80%', once: true,
+      onEnter: function(batch) {
+        gsap.from(batch, { x: -30, autoAlpha: 0, duration: 0.6, stagger: 0.15, ease: 'power2.out' });
+      }
     });
-  });
+    ScrollTrigger.batch('.spec-card', {
+      start: 'top 85%', once: true,
+      onEnter: function(batch) {
+        gsap.from(batch, { scale: 0.9, autoAlpha: 0, duration: 0.5, stagger: 0.08, ease: 'back.out(1.5)' });
+      }
+    });
+    ScrollTrigger.batch('.rm-item', {
+      start: 'top 85%', once: true,
+      onEnter: function(batch) {
+        gsap.from(batch, { y: 40, autoAlpha: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out' });
+      }
+    });
+    ScrollTrigger.batch('.section-title,.section-sub,.eyebrow', {
+      start: 'top 82%', once: true,
+      onEnter: function(batch) {
+        gsap.from(batch, { y: 30, autoAlpha: 0, duration: 0.6, stagger: 0.06, ease: 'power2.out' });
+      }
+    });
+
+    // ── Code window typewriter ────────────────────────────────────────
+    ScrollTrigger.create({
+      trigger: '.code-window', start: 'top 75%', once: true,
+      onEnter: function() {
+        gsap.from('.code-window', {
+          y: 50, autoAlpha: 0, duration: 0.8, ease: 'power3.out',
+          onComplete: function() {
+            gsap.from('.code-body .line', {
+              autoAlpha: 0, x: -10, duration: 0.3, stagger: 0.1, ease: 'power2.out'
+            });
+          }
+        });
+      }
+    });
+
+    // ── Quote card ────────────────────────────────────────────────────
+    ScrollTrigger.create({
+      trigger: '.quote-card', start: 'top 85%', once: true,
+      onEnter: function() {
+        gsap.from('.quote-card', { y: 60, autoAlpha: 0, duration: 1, ease: 'power3.out' });
+        gsap.from('.quote-text', { autoAlpha: 0, duration: 1.2, delay: 0.4 });
+      }
+    });
+
+    // ── Download pulse ────────────────────────────────────────────────
+    ScrollTrigger.create({
+      trigger: '.dl-section', start: 'top 80%', once: true,
+      onEnter: function() {
+        gsap.from('.dl-section .eyebrow', { y: 30, autoAlpha: 0, duration: 0.5 })
+        gsap.from('.dl-section .section-title', { y: 40, autoAlpha: 0, duration: 0.6, delay: 0.1 });
+        gsap.from('.dl-section .section-sub', { y: 30, autoAlpha: 0, duration: 0.5, delay: 0.2 });
+        gsap.from('.dl-btn', { scale: 0.8, autoAlpha: 0, duration: 0.7, ease: 'back.out(2)', delay: 0.3 });
+        gsap.from('.dl-note', { autoAlpha: 0, duration: 0.4, delay: 0.5 });
+        gsap.to('.dl-btn', {
+          y: -6, duration: 2, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.5
+        });
+      }
+    });
+
+    // ── Architecture nodes ────────────────────────────────────────────
+    ScrollTrigger.create({
+      trigger: '.arch-flow', start: 'top 85%', once: true,
+      onEnter: function() {
+        gsap.from('.arch-node', {
+          scale: 0, autoAlpha: 0, duration: 0.5, stagger: 0.1, ease: 'back.out(2)'
+        });
+      }
+    });
+
+    // ── Footer ────────────────────────────────────────────────────────
+    ScrollTrigger.create({
+      trigger: 'footer', start: 'top 95%', once: true,
+      onEnter: function() {
+        gsap.from('footer .footer-inner > *', {
+          y: 20, autoAlpha: 0, duration: 0.5, stagger: 0.08
+        });
+      }
+    });
+
+    // ── Wheel hover micro-interaction ─────────────────────────────────
+    document.querySelectorAll('.wheel-item').forEach(function(el) {
+      el.addEventListener('mouseenter', function() {
+        gsap.to(el, { scale: 1.08, duration: 0.3, ease: 'power2.out' });
+      });
+      el.addEventListener('mouseleave', function() {
+        gsap.to(el, { scale: 1, duration: 0.3, ease: 'power2.out' });
+      });
+    });
+  }
 </script>
 </body>
 </html>
