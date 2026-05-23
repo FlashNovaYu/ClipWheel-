@@ -228,7 +228,11 @@ extern ThemeMode g_theme;
 #define FONT_BODY_DARK      L"Microsoft YaHei UI"
 #define FONT_BODY_LIGHT     L"Segoe UI"
 
-/* ─── Font sizes ──────────────────────────────────────────────────────── */
+/* ─── DPI scaling ─────────────────────────────────────────────────────── */
+extern float g_dpi_scale;
+#define DPISC(px)  ((int)((px) * g_dpi_scale + 0.5f))
+
+/* ─── Font sizes (logical px, scaled by g_dpi_scale at create time) ───── */
 #define FONT_SIZE_DISPLAY  -44
 #define FONT_SIZE_TITLE     -22
 #define FONT_SIZE_BODY      -18
@@ -263,6 +267,11 @@ extern ThemeMode g_theme;
 #define FLOATING_OVERLAY_H  760
 #define OVERLAY_KEY_COLOR   RGB(255, 0, 255)
 #define ID_TIMER_POLL       1
+
+/* Direction ball constants */
+#define BALL_RADIUS      14
+#define BALL_ORBIT_R     (OUTER_R - 20)
+#define BALL_INNER_DEAD  (INNER_R + 10)
 #define WM_TRAY             (WM_APP + 30)
 #define WM_CW_SHOW          (WM_APP + 1)
 #define WM_CW_HIDE          (WM_APP + 2)
@@ -344,6 +353,7 @@ extern HWND g_undo_btn_hwnd;
 extern HWND g_dark_mode_hwnd;
 
 /* ─── Configuration ────────────────────────────────────────────────────── */
+extern float g_dpi_scale;
 extern int g_vk;
 extern int g_mod;
 extern int g_auto_paste;
@@ -363,6 +373,12 @@ extern int g_overlay_vy;
 extern float g_wheel_appear;
 extern float g_sector_heat[CW_MAX_SLOT];
 extern float g_main_phase;
+extern float g_ball_angle;
+extern int   g_ball_active;
+extern float g_ball_x;
+extern float g_ball_y;
+extern float g_ball_tx;
+extern float g_ball_ty;
 
 /* ─── Hook / tray ──────────────────────────────────────────────────────── */
 extern HHOOK g_kb_hook;
@@ -428,7 +444,7 @@ extern wchar_t g_manager_search_buf[256];
 #define PREV_OUTER_R        175
 #define PREV_INNER_R         50
 #define PREV_X_BTN_R         10
-#define SEL_CANCEL_ZONE     (-2)
+#define SEL_CANCEL_ZONE     4
 
 /* ─── Navigation ───────────────────────────────────────────────────────── */
 #define NAV_H          60

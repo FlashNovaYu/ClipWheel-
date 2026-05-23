@@ -1,6 +1,10 @@
 #include "app.h"
 #include "draw_utils.h"
 
+#define CW_CARD_H  DPISC(82)
+#define CW_CARD_GAP DPISC(12)
+#define CW_CARD_TOP DPISC(10)
+
 int card_list_count_for_kind(int kind) {
     return kind == CARD_KIND_PIN ? cw_history_pin_count() : cw_history_history_count();
 }
@@ -16,9 +20,9 @@ CardListState *card_list_state(HWND hwnd) {
 
 int card_list_visible_count(HWND hwnd) {
     RECT rc;
-    int card_h = 82;
+    int card_h = CW_CARD_H;
     GetClientRect(hwnd, &rc);
-    return max(1, (rc.bottom - rc.top - 10) / (card_h + 12));
+    return max(1, (rc.bottom - rc.top - CW_CARD_TOP) / (card_h + CW_CARD_GAP));
 }
 
 void card_list_sync_scroll(HWND hwnd) {
@@ -67,11 +71,11 @@ void card_list_set_selected(HWND hwnd, int index) {
 
 int card_list_hit_test(HWND hwnd, int y) {
     CardListState *state = card_list_state(hwnd);
-    int card_h = 82;
-    int gap = 12;
+    int card_h = CW_CARD_H;
+    int gap = CW_CARD_GAP;
     int rel;
     if (!state) return -1;
-    rel = y - 10;
+    rel = y - CW_CARD_TOP;
     if (rel < 0) return -1;
     rel /= (card_h + gap);
     if (rel < 0) return -1;
@@ -91,9 +95,9 @@ void paint_card_list(HWND hwnd) {
 
     if (state) {
         int count = card_list_count_for_kind(state->kind);
-        int y = 10;
-        int card_h = 82;
-        int gap = 12;
+        int y = CW_CARD_TOP;
+        int card_h = CW_CARD_H;
+        int gap = CW_CARD_GAP;
         int visible = card_list_visible_count(hwnd);
         float pulse = 0.5f + 0.5f * (float)sin(g_main_phase);
         for (int i = 0; i < visible && state->top_index + i < count; i++) {
@@ -224,8 +228,8 @@ LRESULT CALLBACK CardListProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             RECT rc;
             GetClientRect(hwnd, &rc);
             int icon_x = rc.right - 44;
-            int card_y = 10 + (index - state->top_index) * (82 + 12);
-            if (mx >= icon_x && mx < rc.right - 12 && my >= card_y && my < card_y + 82) {
+            int card_y = CW_CARD_TOP + (index - state->top_index) * (CW_CARD_H + CW_CARD_GAP);
+            if (mx >= icon_x && mx < rc.right - DPISC(12) && my >= card_y && my < card_y + CW_CARD_H) {
                 card_list_start_rename(hwnd, index, card_y);
                 return 0;
             }
@@ -361,7 +365,7 @@ LRESULT CALLBACK CardListProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                              MAKEWPARAM(BTN_DELETE_HISTORY, BN_CLICKED), 0);
             } else if (cmd == 6) {
                 /* Start inline rename */
-                int card_y = 10 + (index - state->top_index) * (82 + 12);
+                int card_y = CW_CARD_TOP + (index - state->top_index) * (CW_CARD_H + CW_CARD_GAP);
                 card_list_start_rename(hwnd, index, card_y);
             }
             DestroyMenu(m);

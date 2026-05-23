@@ -9,11 +9,12 @@ void init_theme_objects(void) {
     const wchar_t *face_display = g_theme == THEME_LIGHT ? FONT_DISPLAY_LIGHT : FONT_DISPLAY_DARK;
     const wchar_t *face_body = g_theme == THEME_LIGHT ? FONT_BODY_LIGHT : FONT_BODY_DARK;
     int display_wt = g_theme == THEME_LIGHT ? FW_NORMAL : FW_SEMIBOLD;
-    if (!g_font_display) g_font_display = create_app_font(FONT_SIZE_DISPLAY, display_wt, face_display);
-    if (!g_font_title) g_font_title = create_app_font(FONT_SIZE_TITLE, FW_SEMIBOLD, face_body);
-    if (!g_font_body) g_font_body = create_app_font(FONT_SIZE_BODY, FW_NORMAL, face_body);
-    if (!g_font_body_bold) g_font_body_bold = create_app_font(FONT_SIZE_BODY, FW_SEMIBOLD, face_body);
-    if (!g_font_caption) g_font_caption = create_app_font(FONT_SIZE_CAPTION, FW_NORMAL, face_body);
+    float s = g_dpi_scale;
+    if (!g_font_display) g_font_display = create_app_font((int)(FONT_SIZE_DISPLAY * s), display_wt, face_display);
+    if (!g_font_title)   g_font_title   = create_app_font((int)(FONT_SIZE_TITLE   * s), FW_SEMIBOLD, face_body);
+    if (!g_font_body)    g_font_body    = create_app_font((int)(FONT_SIZE_BODY    * s), FW_NORMAL,   face_body);
+    if (!g_font_body_bold) g_font_body_bold = create_app_font((int)(FONT_SIZE_BODY * s), FW_SEMIBOLD, face_body);
+    if (!g_font_caption) g_font_caption = create_app_font((int)(FONT_SIZE_CAPTION * s), FW_NORMAL, face_body);
     if (!g_brush_bg_deep) g_brush_bg_deep = CreateSolidBrush(TC_BG_DEEPEST);
     if (!g_brush_bg_surface) g_brush_bg_surface = CreateSolidBrush(TC_BG_SURFACE);
     if (!g_brush_bg_card) g_brush_bg_card = CreateSolidBrush(TC_BG_CARD);

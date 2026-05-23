@@ -26,6 +26,8 @@ static int g_dragging_splitter = 0; // 0: none, 1: left, 2: right
 #define MIN_CENTER_W 280
 HWND g_undo_btn_hwnd;
 
+float g_dpi_scale = 1.0f;
+
 int g_vk = VK_OEM_3;
 int g_mod;
 int g_auto_paste = 1;
@@ -46,6 +48,7 @@ int g_overlay_vy;
 float g_wheel_appear = 1.0f;
 float g_sector_heat[CW_MAX_SLOT];
 float g_main_phase = 0.0f;
+HCURSOR g_blank_cursor = NULL;
 
 HHOOK g_kb_hook;
 NOTIFYICONDATAW g_nid;
@@ -89,6 +92,13 @@ POINT   g_drag_pos_screen;
 int     g_drag_drop_sector = -1;
 
 float g_cancel_heat;
+
+float g_ball_angle = -1.5707963f;  /* -PI/2, pointing up (sector 0) */
+int   g_ball_active = 0;
+float g_ball_x = 0.0f;
+float g_ball_y = 0.0f;
+float g_ball_tx = 0.0f;  /* target position (raw accumulation) */
+float g_ball_ty = 0.0f;
 
 int g_recording = 0;
 int g_recorded_vk = 0;
@@ -347,9 +357,9 @@ static void draw_glow_rings(HDC hdc, int cx, int cy, int outer_r) {
     int s1 = SaveDC(hdc);
     /* 3 soft glow rings - wider spacing, more subtle */
     for (int i = 3; i >= 1; --i) {
-        int r = outer_r + i * 24;
+        int r = outer_r + DPISC(i * 24);
         COLORREF glow = mix_color(TC_ACCENT_GLOW, TC_BG_DEEP, 0.65f + (float)i * 0.10f);
-        HPEN p = CreatePen(PS_SOLID, 3, glow);
+        HPEN p = CreatePen(PS_SOLID, DPISC(3), glow);
         HGDIOBJ op = SelectObject(hdc, p);
         HGDIOBJ ob = SelectObject(hdc, GetStockObject(NULL_BRUSH));
         Ellipse(hdc, cx - r, cy - r, cx + r, cy + r);
@@ -358,7 +368,7 @@ static void draw_glow_rings(HDC hdc, int cx, int cy, int outer_r) {
     }
     /* Outermost faint ring */
     {
-        int r = outer_r + 96;
+        int r = outer_r + DPISC(96);
         COLORREF glow = mix_color(TC_ACCENT_GLOW, TC_BG_DEEP, 0.85f);
         HPEN p = CreatePen(PS_SOLID, 1, glow);
         HGDIOBJ op = SelectObject(hdc, p);
@@ -460,7 +470,7 @@ static void draw_wheel_hub(HDC hdc, int cx, int cy, int inner_r, float appear, f
             truncate_preview(preview, ARRAYSIZE(preview), g_slots[sel_slot], 88);
             DrawTextW(hdc, preview, -1, &ccard, DT_CENTER | DT_VCENTER | DT_WORDBREAK | DT_NOPREFIX);
         } else {
-            DrawTextW(hdc, L"\u79fb\u52a8\u9f20\u6807\u9009\u62e9\uff0c\u677e\u5f00\u70ed\u952e\u7c98\u8d34", -1, &ccard, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            DrawTextW(hdc, L"\u79fb\u52a8\u9f20\u6807\u63a7\u5236\u65b9\u5411\u7403\uff0c\u677e\u5f00\u70ed\u952e\u7c98\u8d34", -1, &ccard, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
         }
     }
     RestoreDC(hdc, s3);
@@ -539,9 +549,93 @@ static void draw_wheel_labels(HDC hdc, int cx, int cy, int outer_r, int inner_r,
         SetBkMode(hdc, TRANSPARENT);
         SetTextColor(hdc, mix_color(TC_TEXT_TERTIARY, TC_TEXT_SECONDARY, t_text));
         SelectObject(hdc, g_font_caption);
-        DrawTextW(hdc, L"ESC \u6216\u6ed1\u81f3\u5e95\u90e8\u53d6\u6d88 \xb7 \u677e\u5f00\u7c98\u8d34 \xb7 \u2190\u2191\u2193\u2192\u9009\u6247\u533a", -1, &hint, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        DrawTextW(hdc, L"ESC \u53d6\u6d88 \xb7 \u677e\u5f00\u7c98\u8d34 \xb7 \u79fb\u52a8\u9f20\u6807\u63a7\u5236\u65b9\u5411\u7403", -1, &hint, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     }
     RestoreDC(hdc, s4);
+}
+
+/* draw_ball: renders the direction indicator orb.
+   g_ball_x / g_ball_y store the ball's logical position within the wheel,
+   clamped to BALL_ORBIT_R. Visual position is 1:1 with these values.
+   g_ball_active controls sector highlighting only; ball is always drawn
+   while the wheel is visible. */
+static void draw_ball(HDC hdc, int cx, int cy, int outer_r) {
+    int s5, bx, by, i, br;
+    HBRUSH brushes[11];
+    HPEN   pens[11];
+    static const float body_scales[] = { 1.0f, 0.82f, 0.60f, 0.36f };
+
+    if (!g_wheel_visible) return;
+    (void)outer_r;
+
+    br = DPISC(BALL_RADIUS);
+    s5 = SaveDC(hdc);
+    bx = cx + (int)g_ball_x;
+    by = cy - (int)g_ball_y;
+
+    /* Pre-create all GDI objects to avoid per-iteration churn */
+    for (i = 0; i < 6; i++) {
+        float t = (float)(5 - i) / 5.0f;
+        COLORREF gc = mix_color(TC_ACCENT_DEEP, TC_ACCENT, t * 0.8f + 0.1f);
+        brushes[i] = CreateSolidBrush(gc);
+        pens[i]    = CreatePen(PS_NULL, 0, gc);
+    }
+    for (i = 0; i < 4; i++) {
+        COLORREF bc = mix_color(TC_ACCENT_DEEP, TC_ACCENT_HOVER, (float)i / 3.0f);
+        brushes[6 + i] = CreateSolidBrush(bc);
+        pens[6 + i]    = CreatePen(PS_NULL, 0, bc);
+    }
+    {
+        COLORREF spec = mix_color(TC_WHITE, TC_ACCENT_HOVER, 0.25f);
+        brushes[10] = CreateSolidBrush(spec);
+        pens[10]    = CreatePen(PS_NULL, 0, spec);
+    }
+
+    /* ── Glow halo: outside → inside ── */
+    for (i = 5; i >= 0; i--) {
+        int rg = br + DPISC(4) + i * DPISC(5);
+        HGDIOBJ o1 = SelectObject(hdc, brushes[i]), o2 = SelectObject(hdc, pens[i]);
+        Ellipse(hdc, bx - rg, by - rg, bx + rg, by + rg);
+        SelectObject(hdc, o1); SelectObject(hdc, o2);
+    }
+
+    /* ── Ball body: layered radial gradient ── */
+    for (i = 0; i < 4; i++) {
+        int r = (int)(br * body_scales[i]);
+        HGDIOBJ o1 = SelectObject(hdc, brushes[6 + i]), o2 = SelectObject(hdc, pens[6 + i]);
+        Ellipse(hdc, bx - r, by - r, bx + r, by + r);
+        SelectObject(hdc, o1); SelectObject(hdc, o2);
+    }
+
+    /* ── Specular highlight ── */
+    {
+        int hx = bx - br / 4;
+        int hy = by - br / 4;
+        int hw = br * 45 / 100;
+        int hh = br * 30 / 100;
+        HGDIOBJ o3 = SelectObject(hdc, brushes[10]), o4 = SelectObject(hdc, pens[10]);
+        Ellipse(hdc, hx - hw, hy - hh, hx + hw, hy + hh);
+        SelectObject(hdc, o3); SelectObject(hdc, o4);
+    }
+
+    /* ── Outer border ring (1px) ── */
+    {
+        HPEN bpn = CreatePen(PS_SOLID, 1, TC_ACCENT_GLOW);
+        HGDIOBJ o5 = SelectObject(hdc, GetStockObject(NULL_BRUSH));
+        HGDIOBJ o6 = SelectObject(hdc, bpn);
+        Ellipse(hdc, bx - br, by - br,
+                      bx + br, by + br);
+        SelectObject(hdc, o5); SelectObject(hdc, o6);
+        DeleteObject(bpn);
+    }
+
+    /* Batch-delete all pre-created objects */
+    for (i = 0; i < 11; i++) {
+        DeleteObject(brushes[i]);
+        DeleteObject(pens[i]);
+    }
+
+    RestoreDC(hdc, s5);
 }
 
 void draw_wheel(HDC hdc, int w, int h) {
@@ -551,8 +645,8 @@ void draw_wheel(HDC hdc, int w, int h) {
     double step = 2.0 * WHEEL_PI / (double)NSECT;
 
     wheel_origin(hdc, w, h, &cx, &cy);
-    outer_r = (int)(OUTER_R * (0.6f + 0.4f * appear));
-    inner_r = (int)(INNER_R * (0.6f + 0.4f * appear));
+    outer_r = (int)(DPISC(OUTER_R) * (0.6f + 0.4f * appear));
+    inner_r = (int)(DPISC(INNER_R) * (0.6f + 0.4f * appear));
 
     old_mode = SetBkMode(hdc, TRANSPARENT);
     draw_glow_rings(hdc, cx, cy, outer_r);
@@ -560,6 +654,7 @@ void draw_wheel(HDC hdc, int w, int h) {
     draw_wheel_sectors(hdc, cx, cy, outer_r, step);
     draw_wheel_hub(hdc, cx, cy, inner_r, appear, t_text);
     draw_wheel_labels(hdc, cx, cy, outer_r, inner_r, step, t_text);
+    draw_ball(hdc, cx, cy, outer_r);
     SetBkMode(hdc, old_mode);
 }
 
@@ -664,9 +759,9 @@ void show_wheel(void) {
        Above: glow(72) + brand_gap(72) + brand_h(42) = ~186, round up to OUTER_R+86=336.
        Below: glow(72) + hint_gap(52) = ~124, round up to OUTER_R+54=304. */
     if (!g_floating_mode) {
-        int margin_x = OUTER_R + 54;
-        int margin_top = OUTER_R + 86;
-        int margin_bot = OUTER_R + 54;
+        int margin_x   = DPISC(OUTER_R) + DPISC(54);
+        int margin_top = DPISC(OUTER_R) + DPISC(86);
+        int margin_bot = DPISC(OUTER_R) + DPISC(54);
         int lx = g_wheel_center_screen.x - g_overlay_vx;
         int ly = g_wheel_center_screen.y - g_overlay_vy;
         if (lx < margin_x)           g_wheel_center_screen.x = g_overlay_vx + margin_x;
@@ -690,6 +785,19 @@ void show_wheel(void) {
         GetCursorPos(&verify);
         if (abs(verify.x - cx) > 1 || abs(verify.y - cy) > 1) SetCursorPos(cx, cy);
     }
+    g_ball_active = 0;
+    g_ball_angle = (float)(-WHEEL_PI / 2.0);
+    g_ball_x = 0.0f; g_ball_y = 0.0f;
+    g_ball_tx = 0.0f; g_ball_ty = 0.0f;
+    if (!g_blank_cursor) {
+        /* Create a fully transparent cursor to eliminate all cursor phantoms */
+        BYTE and_mask[128], xor_mask[128];
+        ZeroMemory(and_mask, sizeof(and_mask));
+        ZeroMemory(xor_mask, sizeof(xor_mask));
+        g_blank_cursor = CreateCursor(NULL, 0, 0, 32, 32, and_mask, xor_mask);
+    }
+    SetCursor(g_blank_cursor);
+    ShowCursor(FALSE);
     RedrawWindow(g_overlay_hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW | RDW_ALLCHILDREN);
 }
 
@@ -699,6 +807,11 @@ void hide_wheel_commit(void) {
     g_wheel_visible = 0;
     g_wheel_appear = 1.0f;
     g_cancel_heat = 0.0f;
+    g_ball_active = 0;
+    g_ball_x = 0.0f; g_ball_y = 0.0f;
+    g_ball_tx = 0.0f; g_ball_ty = 0.0f;
+    SetCursor(LoadCursorW(NULL, IDC_ARROW));
+    ShowCursor(TRUE);
     ShowWindow(g_overlay_hwnd, SW_HIDE);
     SetCursorPos(g_original_cursor_pos.x, g_original_cursor_pos.y);
     apply_selection_to_target();
@@ -711,7 +824,12 @@ void hide_wheel_cancel(void) {
     g_wheel_appear = 1.0f;
     g_cancel_heat = 0.0f;
     g_sel = -1;
+    g_ball_active = 0;
+    g_ball_x = 0.0f; g_ball_y = 0.0f;
+    g_ball_tx = 0.0f; g_ball_ty = 0.0f;
     g_hotkey_suppress = 1;
+    SetCursor(LoadCursorW(NULL, IDC_ARROW));
+    ShowCursor(TRUE);
     ShowWindow(g_overlay_hwnd, SW_HIDE);
     SetCursorPos(g_original_cursor_pos.x, g_original_cursor_pos.y);
 }
@@ -1465,8 +1583,15 @@ static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         KillTimer(hwnd, ID_TIMER_POLL);
         RemoveClipboardFormatListener(hwnd);
         tray_remove();
+        if (g_blank_cursor) { DestroyCursor(g_blank_cursor); g_blank_cursor = NULL; }
         PostQuitMessage(0);
         return 0;
+    case WM_SETCURSOR:
+        if (g_wheel_visible && g_blank_cursor) {
+            SetCursor(g_blank_cursor);
+            return TRUE;
+        }
+        return DefWindowProcW(hwnd, msg, wp, lp);
     case WM_CW_SHOW: show_wheel(); return 0;
     case WM_CW_HIDE: hide_wheel_commit(); return 0;
     case WM_CW_CANCEL: hide_wheel_cancel(); return 0;
@@ -1496,14 +1621,43 @@ static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     if (cx <= 0 || cx >= rc.right || cy <= 0 || cy >= rc.bottom)
                         { cx = (rc.right - rc.left) / 2; cy = (rc.bottom - rc.top) / 2; }
                 }
-                next_sel = sector_from_point(cx, cy, pt.x, pt.y);
-                if (next_sel < 0) {
-                    int outer_r_cur = (int)(OUTER_R * (0.6f + 0.4f * ease_out_backf(g_wheel_appear)));
-                    int cancel_y = cy + outer_r_cur + 74;
-                    int dcx = pt.x - cx, dcy = pt.y - cancel_y;
-                    if (dcx*dcx + dcy*dcy <= 26*26) next_sel = SEL_CANCEL_ZONE;
+                /* Direction ball: always follows mouse 1:1, clamped to orbit radius.
+                   Ball is always visible while wheel is shown.
+                   Dead zone only controls sector selection, not ball visibility. */
+                {
+                    int dx = pt.x - cx, dy = pt.y - cy;
+                    double dist = hypot((double)dx, (double)dy);
+                    g_ball_angle = (float)atan2(-(double)dy, (double)dx);
+                    double ball_dist = dist;
+                    if (ball_dist > DPISC(BALL_ORBIT_R))
+                        ball_dist = DPISC(BALL_ORBIT_R);
+                    g_ball_x = (float)(ball_dist * cos(g_ball_angle));
+                    g_ball_y = (float)(ball_dist * sin(g_ball_angle));
+                    g_ball_active = (dist > DPISC(BALL_INNER_DEAD)) ? 1 : 0;
+                    need_repaint = 1;
+
+                    /* Normalize angle to [0, 2*PI) */
+                    while (g_ball_angle < 0.0f)          g_ball_angle += (float)(2.0 * WHEEL_PI);
+                    while (g_ball_angle >= (float)(2.0 * WHEEL_PI))  g_ball_angle -= (float)(2.0 * WHEEL_PI);
+                }
+                next_sel = -1;
+                if (g_ball_active) {
+                    double step = 2.0 * WHEEL_PI / (double)NSECT;
+                    double shifted = g_ball_angle + WHEEL_PI / 2.0 + step / 2.0;
+                    while (shifted < 0) shifted += 2.0 * WHEEL_PI;
+                    while (shifted >= 2.0 * WHEEL_PI) shifted -= 2.0 * WHEEL_PI;
+                    int idx = (int)floor(shifted / step);
+                    if (idx < 0) idx = 0;
+                    if (idx >= NSECT) idx = NSECT - 1;
+                    if (idx == 4) {
+                        next_sel = SEL_CANCEL_ZONE;
+                    } else {
+                        int slot = sector_to_slot(idx);
+                        if (slot >= 0 && slot < g_slot_count) next_sel = idx;
+                    }
                 }
                 if (next_sel != g_sel) { g_sel = next_sel; need_repaint = 1; }
+                if (g_ball_active) need_repaint = 1;
                 { float ct = (g_sel == SEL_CANCEL_ZONE) ? 1.0f : 0.0f;
                   float prev_ch = g_cancel_heat;
                   g_cancel_heat += (ct - g_cancel_heat) * 0.22f;
@@ -1915,15 +2069,34 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
 
     if (g_wheel_visible) {
         if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+            int new_sel = -1;
             if (k->vkCode == VK_ESCAPE) { PostMessageW(g_overlay_hwnd, WM_CW_CANCEL, 0, 0); return 1; }
-            if (k->vkCode == VK_UP)    { int s = sector_to_slot(0); if (s >= 0 && s < g_slot_count) g_sel = 0; return 1; }
-            if (k->vkCode == VK_RIGHT) { int s = sector_to_slot(5); if (s >= 0 && s < g_slot_count) g_sel = 5; return 1; }
-            if (k->vkCode == VK_DOWN)  { g_sel = 4; return 1; }
-            if (k->vkCode == VK_LEFT)  { int s = sector_to_slot(2); if (s >= 0 && s < g_slot_count) g_sel = 2; return 1; }
-            if (k->vkCode == VK_NEXT)  { int s = sector_to_slot(6); if (s >= 0 && s < g_slot_count) g_sel = 6; return 1; }
-            if (k->vkCode == VK_PRIOR) { int s = sector_to_slot(1); if (s >= 0 && s < g_slot_count) g_sel = 1; return 1; }
-            if (k->vkCode == VK_HOME)  { int s = sector_to_slot(3); if (s >= 0 && s < g_slot_count) g_sel = 3; return 1; }
-            if (k->vkCode == VK_END)   { int s = sector_to_slot(7); if (s >= 0 && s < g_slot_count) g_sel = 7; return 1; }
+            else if (k->vkCode == VK_UP)    { new_sel = 4; } /* Cancel zone, straight UP */
+            else if (k->vkCode == VK_DOWN)  { int s = sector_to_slot(0); if (s >= 0 && s < g_slot_count) new_sel = 0; } /* straight DOWN */
+            else if (k->vkCode == VK_LEFT)  { int s = sector_to_slot(6); if (s >= 0 && s < g_slot_count) new_sel = 6; } /* straight LEFT */
+            else if (k->vkCode == VK_RIGHT) { int s = sector_to_slot(2); if (s >= 0 && s < g_slot_count) new_sel = 2; } /* straight RIGHT */
+            else if (k->vkCode == VK_HOME)  { int s = sector_to_slot(5); if (s >= 0 && s < g_slot_count) new_sel = 5; } /* top-LEFT */
+            else if (k->vkCode == VK_PRIOR) { int s = sector_to_slot(3); if (s >= 0 && s < g_slot_count) new_sel = 3; } /* top-RIGHT */
+            else if (k->vkCode == VK_END)   { int s = sector_to_slot(7); if (s >= 0 && s < g_slot_count) new_sel = 7; } /* bottom-LEFT */
+            else if (k->vkCode == VK_NEXT)  { int s = sector_to_slot(1); if (s >= 0 && s < g_slot_count) new_sel = 1; } /* bottom-RIGHT */
+
+            if (new_sel >= 0 || new_sel == SEL_CANCEL_ZONE) {
+                g_sel = new_sel;
+                double step = 2.0 * WHEEL_PI / (double)NSECT;
+                int orb = DPISC(BALL_ORBIT_R);
+                g_ball_angle = (float)(-WHEEL_PI / 2.0 + g_sel * step);
+                g_ball_x = (float)(orb * cos(g_ball_angle));
+                g_ball_y = (float)(orb * sin(g_ball_angle));
+                g_ball_tx = g_ball_x;
+                g_ball_ty = g_ball_y;
+                g_ball_active = 1;
+
+                /* Lock physical cursor back to the opaque center hub to completely hide any mouse phantoms */
+                SetCursorPos(g_wheel_center_screen.x, g_wheel_center_screen.y);
+
+                InvalidateRect(g_overlay_hwnd, NULL, FALSE);
+                return 1;
+            }
         } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
             BOOL hide = FALSE;
             if (vk_matches(k->vkCode)) hide = TRUE;
@@ -2014,10 +2187,12 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE prev, LPWSTR cmd, int show) {
         GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN),
         NULL, NULL, hi, NULL);
     if (!g_overlay_hwnd) { cw_history_shutdown(); CloseHandle(one); destroy_theme_objects(); return 1; }
+    g_dpi_scale = (float)GetDpiForWindow(g_overlay_hwnd) / 96.0f;
 
     SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
     g_main_hwnd = CreateWindowExW(0, kMainClass, L"ClipWheel 控制中心",
-        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, work.left + 80, work.top + 48, 1180, 760,
+        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, work.left + 80, work.top + 48,
+        DPISC(1180), DPISC(760),
         NULL, NULL, hi, NULL);
     if (!g_main_hwnd) { DestroyWindow(g_overlay_hwnd); cw_history_shutdown(); CloseHandle(one); destroy_theme_objects(); return 1; }
 

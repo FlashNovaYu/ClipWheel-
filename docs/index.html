@@ -345,6 +345,12 @@
     .b-persist { grid-column: span 4; }
     .b-paste   { grid-column: span 4; }
     .b-light   { grid-column: span 4; }
+    .b-undo    { grid-column: span 4; }
+    .b-keynav  { grid-column: span 4; }
+    .b-ctx     { grid-column: span 4; }
+    .b-tray    { grid-column: span 4; }
+    .b-search  { grid-column: span 4; }
+    .b-dpi     { grid-column: span 4; }
 
     /* Accent cards */
     .card-blue  { --accent-c: var(--accent); }
@@ -352,6 +358,8 @@
     .card-amber { --accent-c: var(--amber); }
     .card-green { --accent-c: var(--green); }
     .card-white { --accent-c: rgba(255,255,255,0.7); }
+    .card-coral { --accent-c: #cc785c; }
+    .card-rose  { --accent-c: #e8637a; }
 
     .bento-card .card-icon { background: color-mix(in srgb, var(--accent-c) 15%, transparent); }
     .bento-card .card-icon svg { stroke: var(--accent-c); }
@@ -467,7 +475,7 @@
 
     /* ─── ROADMAP ─── */
     .roadmap-timeline {
-      display: grid; grid-template-columns: repeat(3, 1fr);
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 1px; background: var(--border);
       border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
       margin-top: 4rem;
@@ -554,6 +562,146 @@
     .reveal-delay-3 { transition-delay: 0.3s; }
     .reveal-delay-4 { transition-delay: 0.4s; }
 
+    /* ─── WHAT'S NEW SHOWCASE ─── */
+    .whats-new { background: var(--bg-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .wn-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 2rem; margin-top: 3rem;
+    }
+    .wn-card {
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 2.5rem;
+      position: relative; overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .wn-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+    .wn-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.015) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .wn-card.wn-hero { grid-column: span 2; }
+    .wn-card h3 {
+      font-family: 'Syne', sans-serif; font-size: 1.3rem;
+      font-weight: 600; margin-bottom: 0.75rem; letter-spacing: -0.02em;
+    }
+    .wn-card p { font-size: 0.9rem; color: var(--text-2); line-height: 1.8; }
+    .wn-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.68rem; font-weight: 500; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 3px 10px; border-radius: 50px;
+      margin-bottom: 1rem;
+    }
+    .wn-badge.new { background: rgba(79,158,255,0.1); color: var(--accent); border: 1px solid rgba(79,158,255,0.2); }
+    .wn-badge.arch { background: rgba(167,139,250,0.1); color: var(--accent-2); border: 1px solid rgba(167,139,250,0.2); }
+    .wn-badge.fix { background: rgba(48,209,88,0.1); color: var(--green); border: 1px solid rgba(48,209,88,0.2); }
+
+    /* Theme toggle demo */
+    .theme-demo {
+      display: flex; gap: 1.5rem; margin-top: 1.5rem;
+    }
+    .theme-preview {
+      flex: 1; border-radius: var(--r-sm); padding: 1.25rem;
+      border: 1px solid var(--border); position: relative;
+      min-height: 140px; display: flex; flex-direction: column;
+    }
+    .theme-preview.light-preview {
+      background: #faf9f5;
+      border-color: rgba(0,0,0,0.08);
+    }
+    .theme-preview.dark-preview {
+      background: #13131a;
+    }
+    .theme-preview-label {
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 0.75rem;
+    }
+    .light-preview .theme-preview-label { color: #6c6a64; }
+    .dark-preview .theme-preview-label { color: var(--text-3); }
+    .theme-swatch {
+      display: flex; gap: 6px; margin-top: auto;
+    }
+    .theme-swatch span {
+      width: 24px; height: 24px; border-radius: 6px;
+      border: 1px solid rgba(128,128,128,0.2);
+    }
+
+    /* Color palette showcase */
+    .palette-row {
+      display: flex; gap: 6px; margin-top: 1.25rem; flex-wrap: wrap;
+    }
+    .palette-chip {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+      transition: transform 0.2s;
+    }
+    .palette-chip:hover { transform: scale(1.15); }
+    .palette-chip::after {
+      content: attr(data-label);
+      position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+      font-size: 0.55rem; color: var(--text-3); white-space: nowrap;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .palette-chip:hover::after { opacity: 1; }
+
+    /* Architecture diagram */
+    .arch-flow {
+      display: flex; align-items: center; gap: 0; margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .arch-node {
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: var(--r-sm); padding: 0.6rem 1rem;
+      font-size: 0.78rem; font-weight: 500; color: var(--text);
+      white-space: nowrap;
+    }
+    .arch-node.highlight {
+      border-color: rgba(79,158,255,0.3);
+      background: rgba(79,158,255,0.06);
+      color: var(--accent);
+    }
+    .arch-arrow {
+      color: var(--text-3); font-size: 0.7rem; padding: 0 0.5rem;
+    }
+
+    /* Feature list in cards */
+    .feature-list {
+      list-style: none; margin-top: 1rem;
+    }
+    .feature-list li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 0.85rem; color: var(--text-2); line-height: 1.6;
+      margin-bottom: 0.4rem;
+    }
+    .feature-list li::before {
+      content: ''; flex-shrink: 0;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--accent-c, var(--accent));
+      margin-top: 0.55rem;
+    }
+
+    /* Testimonial / quote */
+    .quote-card {
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 2.5rem;
+      position: relative; margin-top: 3rem;
+    }
+    .quote-card::before {
+      content: '\201C'; position: absolute; top: 1rem; left: 1.5rem;
+      font-family: 'Syne', sans-serif; font-size: 4rem; line-height: 1;
+      color: rgba(79,158,255,0.15); pointer-events: none;
+    }
+    .quote-text {
+      font-size: 1.1rem; color: var(--text); line-height: 1.8;
+      font-style: italic; font-weight: 300;
+      padding-left: 2rem;
+    }
+    .quote-meta {
+      margin-top: 1rem; padding-left: 2rem;
+      font-size: 0.82rem; color: var(--text-3);
+    }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 900px) {
       .hero-inner { grid-template-columns: 1fr; text-align: center; gap: 3rem; }
@@ -561,11 +709,15 @@
       .hero-actions { justify-content: center; }
       .how-grid { grid-template-columns: 1fr 1fr; }
       .tech-inner { grid-template-columns: 1fr; }
-      .b-wheel, .b-hotkey, .b-persist, .b-paste, .b-light { grid-column: span 12; }
+      .b-wheel, .b-hotkey, .b-persist, .b-paste, .b-light, .b-undo, .b-keynav, .b-ctx, .b-tray, .b-search, .b-dpi { grid-column: span 12; }
+      .wn-grid { grid-template-columns: 1fr; }
+      .wn-card.wn-hero { grid-column: span 1; }
+      .theme-demo { flex-direction: column; }
       nav { padding: 0 1.25rem; }
       .nav-links { display: none; }
       .roadmap-timeline { grid-template-columns: 1fr; }
       .footer-inner { flex-direction: column; align-items: flex-start; }
+      .arch-flow { justify-content: center; }
     }
     @media (max-width: 600px) {
       .how-grid { grid-template-columns: 1fr; }
@@ -574,6 +726,8 @@
       .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 </head>
 <body>
 
@@ -586,8 +740,10 @@
     ClipWheel
   </a>
   <ul class="nav-links">
+    <li><a href="#whats-new">新特性</a></li>
     <li><a href="#features">功能</a></li>
     <li><a href="#how">使用方式</a></li>
+    <li><a href="#tech">技术</a></li>
     <li><a href="#roadmap">路线图</a></li>
     <li><a href="#download" class="nav-cta">免费下载</a></li>
   </ul>
@@ -599,7 +755,7 @@
   <div class="hero-blob hero-blob-2"></div>
   <div class="hero-inner">
     <div class="hero-text">
-      <div class="hero-badge reveal">V 2.2 现已发布</div>
+      <div class="hero-badge reveal">V 2.3 全新发布</div>
       <h1 class="hero-title reveal reveal-delay-1">
         极速粘贴，<br>
         <span class="line2">指尖流转。</span>
@@ -700,6 +856,134 @@
   </div>
 </div>
 
+<!-- ─── WHAT'S NEW V2.3 ─── -->
+<section class="content whats-new" id="whats-new">
+  <div class="container">
+    <div class="reveal">
+      <div class="eyebrow">V 2.3 — 全新发布</div>
+      <h2 class="section-title">一次蜕变，<br>两个世界。</h2>
+      <p class="section-sub">全新的浅色设计语言、50+ 设计令牌、代理宏架构、3 项关键 Bug 修复——V2.3 是 ClipWheel 有史以来最大的视觉与架构升级。</p>
+    </div>
+
+    <div class="wn-grid">
+      <!-- Hero card: Theme duality -->
+      <div class="wn-card wn-hero reveal">
+        <div class="wn-badge new">核心特性</div>
+        <h3>双主题系统：浅色与暗色，一键切换</h3>
+        <p>基于 Claude.com 暖调编辑风格设计的全新浅色 UI——奶油底色搭配珊瑚强调色，温暖而不失专业。同时保留经典暗色主题，通过设置面板的勾选框即时切换，重启后自动持久化。</p>
+        <div class="theme-demo">
+          <div class="theme-preview light-preview">
+            <div class="theme-preview-label">浅色主题</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <div style="width:12px;height:12px;border-radius:3px;background:#cc785c;"></div>
+              <span style="font-size:0.75rem;color:#3d3d3a;font-weight:500;">珊瑚强调色</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <div style="width:12px;height:12px;border-radius:3px;background:#faf9f5;border:1px solid rgba(0,0,0,0.06);"></div>
+              <span style="font-size:0.75rem;color:#3d3d3a;font-weight:500;">奶油底色</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="width:12px;height:12px;border-radius:3px;background:#141413;"></div>
+              <span style="font-size:0.75rem;color:#3d3d3a;font-weight:500;">墨水文字</span>
+            </div>
+            <div class="theme-swatch" style="margin-top:auto;">
+              <span style="background:#faf9f5;"></span>
+              <span style="background:#efe9de;"></span>
+              <span style="background:#f5f3ee;"></span>
+              <span style="background:#cc785c;"></span>
+              <span style="background:#141413;"></span>
+            </div>
+          </div>
+          <div class="theme-preview dark-preview">
+            <div class="theme-preview-label">暗色主题</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <div style="width:12px;height:12px;border-radius:3px;background:#4f9eff;"></div>
+              <span style="font-size:0.75rem;color:var(--text-2);font-weight:500;">靛蓝强调色</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <div style="width:12px;height:12px;border-radius:3px;background:#13131a;border:1px solid rgba(255,255,255,0.08);"></div>
+              <span style="font-size:0.75rem;color:var(--text-2);font-weight:500;">深空底色</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="width:12px;height:12px;border-radius:3px;background:#f0f0f5;"></div>
+              <span style="font-size:0.75rem;color:var(--text-2);font-weight:500;">亮白文字</span>
+            </div>
+            <div class="theme-swatch" style="margin-top:auto;">
+              <span style="background:#060608;"></span>
+              <span style="background:#0d0d12;"></span>
+              <span style="background:#13131a;"></span>
+              <span style="background:#4f9eff;"></span>
+              <span style="background:#f0f0f5;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Design system -->
+      <div class="wn-card reveal">
+        <div class="wn-badge arch">架构升级</div>
+        <h3>TC_* 代理宏设计系统</h3>
+        <p>50+ 色值常量，覆盖背景层、强调色、文字层级、边框状态、轮盘色板、取消区域等全部 UI 元素。所有绘制代码统一使用 <code style="background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.8em;">TC_*</code> 代理宏，根据全局主题自动选择明暗值，无需手动 if/else。</p>
+        <div class="palette-row">
+          <div class="palette-chip" style="background:#faf9f5;" data-label="canvas"></div>
+          <div class="palette-chip" style="background:#efe9de;" data-label="surface"></div>
+          <div class="palette-chip" style="background:#f5f3ee;" data-label="card"></div>
+          <div class="palette-chip" style="background:#cc785c;" data-label="coral"></div>
+          <div class="palette-chip" style="background:#b8654a;" data-label="hover"></div>
+          <div class="palette-chip" style="background:#141413;" data-label="ink"></div>
+          <div class="palette-chip" style="background:#3d3d3a;" data-label="body"></div>
+          <div class="palette-chip" style="background:#6c6a64;" data-label="muted"></div>
+        </div>
+      </div>
+
+      <!-- Theme-aware fonts -->
+      <div class="wn-card reveal">
+        <div class="wn-badge new">新特性</div>
+        <h3>主题感知字体</h3>
+        <p>浅色模式使用 Georgia（标题）搭配 Segoe UI（正文），营造温暖的阅读氛围；暗色模式保持 Microsoft YaHei UI，确保清晰度与一致性。5 级字号常量统一管理。</p>
+        <div style="margin-top:1.25rem;display:flex;gap:1rem;">
+          <div style="flex:1;background:var(--surface);border-radius:var(--r-sm);padding:1rem;text-align:center;">
+            <div style="font-family:Georgia,serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Georgia</div>
+            <div style="font-size:0.7rem;color:var(--text-3);">标题 · 浅色</div>
+          </div>
+          <div style="flex:1;background:var(--surface);border-radius:var(--r-sm);padding:1rem;text-align:center;">
+            <div style="font-family:'Segoe UI',sans-serif;font-size:1.1rem;font-weight:400;margin-bottom:4px;">Segoe UI</div>
+            <div style="font-size:0.7rem;color:var(--text-3);">正文 · 浅色</div>
+          </div>
+          <div style="flex:1;background:var(--surface);border-radius:var(--r-sm);padding:1rem;text-align:center;">
+            <div style="font-family:'Microsoft YaHei UI',sans-serif;font-size:1.1rem;font-weight:400;margin-bottom:4px;">雅黑</div>
+            <div style="font-size:0.7rem;color:var(--text-3);">全局 · 暗色</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bug fixes -->
+      <div class="wn-card reveal">
+        <div class="wn-badge fix">Bug 修复</div>
+        <h3>3 项关键修复</h3>
+        <ul class="feature-list">
+          <li><strong>卡死修复</strong>：轮盘预览中点击固定扇区未拖拽导致鼠标永久捕获的问题</li>
+          <li><strong>取消固定错位</strong>：X 按钮与内容不匹配，现在正确映射到扇区索引</li>
+          <li><strong>高扇区不可交互</strong>：扇区 5-7 的固定项现在可正常显示 X 按钮和标签</li>
+          <li><strong>对比度合规</strong>：浅色主题 muted 文字从 3.95:1 提升到 4.8:1（WCAG AA）</li>
+        </ul>
+      </div>
+
+      <!-- Refactoring -->
+      <div class="wn-card reveal">
+        <div class="wn-badge arch">重构</div>
+        <h3>代码质量提升</h3>
+        <ul class="feature-list">
+          <li><strong>函数拆分</strong>：<code style="background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.8em;">paint_wheel_preview()</code> 拆分为 5 个静态绘制函数</li>
+          <li><strong>字体常量化</strong>：<code style="background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.8em;">FONT_SIZE_DISPLAY</code> / TITLE / BODY / RENAME / CAPTION</li>
+          <li><strong>刷子重命名</strong>：<code style="background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.8em;">g_brush_light</code> → g_brush_bg_deep 等语义化命名</li>
+          <li><strong>色值扩展</strong>：新增 17 个浅色主题变体常量（取消区域、X 按钮、标签）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ─── FEATURES ─── -->
 <section class="content" id="features">
   <div class="container">
@@ -779,6 +1063,67 @@
         </div>
         <h3>极致轻量</h3>
         <p>纯 C + Win32 编写，零依赖，绿色免安装，开机秒启。</p>
+      </div>
+
+      <!-- Undo stack -->
+      <div class="bento-card b-undo card-coral reveal">
+        <div class="card-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 10h10a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H8"/><polyline points="7 6 3 10 7 14"/></svg>
+        </div>
+        <h3>撤销栈</h3>
+        <p>16 级撤销支持，删除或取消固定后一键回退。误操作不再是永久伤害。</p>
+      </div>
+
+      <!-- Keyboard navigation -->
+      <div class="bento-card b-keynav card-purple reveal">
+        <div class="card-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M17 7l-5 5-5-5"/></svg>
+        </div>
+        <h3>键盘导航</h3>
+        <p>方向键 ↑↓←→、PgUp/PgDn/Home/End 全面覆盖，无需鼠标即可精准选择扇区。</p>
+        <div class="key-combo" style="margin-top:1rem;">
+          <div class="key">↑</div>
+          <div class="key">↓</div>
+          <div class="key">←</div>
+          <div class="key">→</div>
+          <span class="key-plus" style="margin-left:4px;">轮盘导航</span>
+        </div>
+      </div>
+
+      <!-- Context menu -->
+      <div class="bento-card b-ctx card-green reveal">
+        <div class="card-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+        </div>
+        <h3>右键菜单</h3>
+        <p>复制、固定、编辑、取消固定、删除——所有操作触手可及，交互效率倍增。</p>
+      </div>
+
+      <!-- System tray -->
+      <div class="bento-card b-tray card-amber reveal">
+        <div class="card-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <h3>系统托盘</h3>
+        <p>静默驻守系统托盘，右键一键打开控制中心、固定当前内容或退出程序。</p>
+      </div>
+
+      <!-- Search -->
+      <div class="bento-card b-search card-rose reveal">
+        <div class="card-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </div>
+        <h3>Ctrl+F 搜索</h3>
+        <p>内置搜索栏框架，Ctrl+F 快速唤起，从海量历史记录中精准定位目标内容。</p>
+      </div>
+
+      <!-- DPI awareness -->
+      <div class="bento-card b-dpi card-blue reveal">
+        <div class="card-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M7 8h2M11 8h2M15 8h2M7 12h10"/></svg>
+        </div>
+        <h3>DPI 感知</h3>
+        <p>PerMonitorAwareV2 级别 DPI 感知，多显示器环境下自动适配缩放比例，像素级精准。</p>
       </div>
     </div>
   </div>
@@ -862,24 +1207,74 @@
             <div class="dot dot-r"></div>
             <div class="dot dot-y"></div>
             <div class="dot dot-g"></div>
-            <span style="margin-left:8px;font-size:0.75rem;color:var(--text-3);font-family:monospace;">clipwheel.c</span>
+            <span style="margin-left:8px;font-size:0.75rem;color:var(--text-3);font-family:monospace;">app.h</span>
           </div>
-          <div class="code-body"><pre><span class="c-comment">// 注册全局热键，无缝捕获系统事件</span>
-<span class="c-fn">RegisterHotKey</span>(hwnd, HOTKEY_ID,
-  MOD_CONTROL | MOD_NOREPEAT,
-  VK_OEM_3);  <span class="c-comment">// ~ 键</span>
+          <div class="code-body"><pre><span class="line"><span class="c-comment">// TC_* 代理宏 — 一处定义，全局主题自动适配</span></span>
+<span class="line"><span class="c-kw">#define</span> <span class="c-fn">TC_BG_SURFACE</span> \</span>
+<span class="line">  (g_theme == <span class="c-type">THEME_LIGHT</span> \</span>
+<span class="line">    ? <span class="c-num">0xFAF9F5</span>  <span class="c-comment">// 奶油底色</span></span>
+<span class="line">    : <span class="c-num">0x0D0D12</span>) <span class="c-comment">// 深空底色</span></span>
 
-<span class="c-comment">// 高精度事件循环 — < 1ms 响应</span>
-<span class="c-kw">while</span> (<span class="c-fn">GetMessage</span>(&msg, <span class="c-num">NULL</span>, <span class="c-num">0</span>, <span class="c-num">0</span>)) {
-  <span class="c-kw">if</span> (msg.message == <span class="c-type">WM_HOTKEY</span>) {
-    <span class="c-fn">ShowRadialWheel</span>(cursor_x, cursor_y);
-  }
-  <span class="c-fn">DispatchMessage</span>(&msg);
-}
+<span class="line"><span class="c-kw">#define</span> <span class="c-fn">TC_ACCENT</span> \</span>
+<span class="line">  (g_theme == <span class="c-type">THEME_LIGHT</span> \</span>
+<span class="line">    ? <span class="c-num">0x5C78CC</span>  <span class="c-comment">// 珊瑚强调</span></span>
+<span class="line">    : <span class="c-num">0xFF9E4F</span>) <span class="c-comment">// 靛蓝强调</span></span>
 
-<span class="c-comment">// 松开热键 → 自动粘贴，体验无缝</span>
-<span class="c-fn">SetForegroundWindow</span>(prev_hwnd);
-<span class="c-fn">SendInput</span>(PASTE_KEYSTROKE);</pre></div>
+<span class="line"><span class="c-comment">// 50+ 色值常量，覆盖全部 UI 元素</span></span>
+<span class="line"><span class="c-comment">// 绘制代码零 if/else，主题切换即时生效</span></span></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architecture flow -->
+    <div class="reveal" style="margin-top:4rem;">
+      <div class="eyebrow">模块架构</div>
+      <h3 style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:600;margin-bottom:0.5rem;letter-spacing:-0.02em;">五模块协作，职责清晰</h3>
+      <p style="font-size:0.9rem;color:var(--text-2);line-height:1.7;max-width:600px;">从 2849 行单文件拆分为 5 个高内聚模块，每个模块独立编译、独立测试。</p>
+      <div class="arch-flow">
+        <div class="arch-node highlight">app.h<br><span style="font-size:0.65rem;opacity:0.7;">设计令牌 · 全局声明</span></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">main.c<br><span style="font-size:0.65rem;opacity:0.7;">入口 · 轮盘 · 覆盖层</span></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">history.c<br><span style="font-size:0.65rem;opacity:0.7;">数据层 · 持久化</span></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">draw_utils.c<br><span style="font-size:0.65rem;opacity:0.7;">GDI 绘制原语</span></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">cardlist.c<br><span style="font-size:0.65rem;opacity:0.7;">卡片列表控件</span></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">wheel_preview.c<br><span style="font-size:0.65rem;opacity:0.7;">轮盘预览控件</span></div>
+      </div>
+    </div>
+
+    <!-- Design system details -->
+    <div class="reveal" style="margin-top:4rem;">
+      <div class="eyebrow">设计系统</div>
+      <h3 style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:600;margin-bottom:0.5rem;letter-spacing:-0.02em;">Token-First 设计方法论</h3>
+      <p style="font-size:0.9rem;color:var(--text-2);line-height:1.7;max-width:600px;">所有视觉属性均通过设计令牌管理，确保一致性与可维护性。</p>
+      <div class="spec-grid" style="margin-top:1.5rem;">
+        <div class="spec-card">
+          <div class="val">80+</div>
+          <div class="lbl">设计令牌</div>
+        </div>
+        <div class="spec-card">
+          <div class="val">5 级</div>
+          <div class="lbl">表面层级</div>
+        </div>
+        <div class="spec-card">
+          <div class="val">5 级</div>
+          <div class="lbl">字号常量</div>
+        </div>
+        <div class="spec-card">
+          <div class="val">4 级</div>
+          <div class="lbl">圆角系统</div>
+        </div>
+        <div class="spec-card">
+          <div class="val">WCAG</div>
+          <div class="lbl">AA 对比度</div>
+        </div>
+        <div class="spec-card">
+          <div class="val">Base-4</div>
+          <div class="lbl">间距网格</div>
         </div>
       </div>
     </div>
@@ -913,13 +1308,53 @@
       <div class="rm-item reveal reveal-delay-2">
         <div class="rm-tag now">最新发布</div>
         <h4>V2.3 — 浅色主题与新设计语言</h4>
-        <p>基于 Claude.com 暖调编辑风格的全新浅色 UI、暗色模式切换、拖拽/取消固定 Bug 修复。</p>
+        <p>全新浅色 UI（Claude.com 暖调风格）、暗色模式切换、50+ 设计令牌、TC_* 代理宏架构、主题感知字体、3 项关键 Bug 修复、paint 函数拆分与语义化重命名。</p>
       </div>
-      <div class="rm-item reveal reveal-delay-2">
+      <div class="rm-item reveal reveal-delay-3">
+        <div class="rm-tag soon">规划中</div>
+        <h4>V2.4 — 搜索增强与插件</h4>
+        <p>搜索栏功能完善、正则表达式匹配、插件系统框架、更多主题自定义选项。</p>
+      </div>
+      <div class="rm-item reveal reveal-delay-4">
         <div class="rm-tag soon">未来规划</div>
         <h4>V3.0 — 生态联动</h4>
-        <p>云端同步、跨设备管理，以及更丰富的主题自定义系统。</p>
+        <p>云端同步、跨设备管理，以及更丰富的主题自定义系统与社区生态。</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CHANGELOG HIGHLIGHTS ─── -->
+<section class="content" id="changelog">
+  <div class="container">
+    <div class="reveal">
+      <div class="eyebrow">版本历程</div>
+      <h2 class="section-title">每一次迭代，<br>都为真实痛点而来。</h2>
+      <p class="section-sub">从 V1.0 到 V2.3，ClipWheel 始终坚持「一个问题，一个版本，彻底解决」的节奏。</p>
+    </div>
+
+    <div class="roadmap-timeline" style="margin-top:3rem;">
+      <div class="rm-item reveal">
+        <div class="rm-tag done">V2.0 · 2026-04-18</div>
+        <h4>UI 重构与控制中心</h4>
+        <p>全新主界面与轮盘交互流程、控制中心与托盘菜单增强、图标资产生成脚本、安装脚本模板。</p>
+      </div>
+      <div class="rm-item reveal reveal-delay-1">
+        <div class="rm-tag done">V2.2 · 2026-05-03</div>
+        <h4>键盘导航与模块化</h4>
+        <p>方向键轮盘导航、右键上下文菜单、撤销栈、开机自启、Ctrl+F 搜索框架、main.c 拆分为 5 模块、CI/CD 工作流。</p>
+      </div>
+      <div class="rm-item reveal reveal-delay-2">
+        <div class="rm-tag now">V2.3 · 2026-05-15</div>
+        <h4>浅色主题与设计系统</h4>
+        <p>全新浅色 UI、暗色模式切换、50+ 设计令牌、TC_* 代理宏、主题感知字体、3 项 Bug 修复、paint 函数拆分。</p>
+      </div>
+    </div>
+
+    <!-- Design philosophy quote -->
+    <div class="quote-card reveal" style="margin-top:3rem;">
+      <p class="quote-text">每一个像素都经过推敲，每一个交互都追求零延迟。ClipWheel 不只是一个工具，它是对「剪贴板应该如何工作」这个问题的重新思考。</p>
+      <div class="quote-meta">— ClipWheel 设计哲学</div>
     </div>
   </div>
 </section>
@@ -929,12 +1364,26 @@
   <div class="reveal">
     <div class="eyebrow" style="margin-bottom:1.25rem;">开始使用</div>
     <h2 class="section-title">准备好了吗？</h2>
-    <p class="section-sub">免费下载，绿色无安装，10 秒内即可体验全新的剪贴板交互。</p>
+    <p class="section-sub">免费下载，绿色无安装，10 秒内即可体验全新的剪贴板交互。V2.3 带来全新浅色主题与 50+ 设计令牌。</p>
     <a href="https://github.com/FlashNovaYu/ClipWheel-/releases/download/v2.3.0/ClipWheel-v2.3.0-Windows-x64.zip" class="dl-btn" target="_blank" rel="noopener noreferrer">
       <svg fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       免费下载 ClipWheel V2.3
     </a>
-    <p class="dl-note">Windows 10 / 11 (64-bit) · 无需安装 · 约 200KB</p>
+    <p class="dl-note">Windows 10 / 11 (64-bit) · 无需安装 · 约 200KB · MIT 开源</p>
+    <div style="display:flex;justify-content:center;gap:2rem;margin-top:2rem;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:700;color:var(--accent);">260KB</div>
+        <div style="font-size:0.72rem;color:var(--text-3);margin-top:2px;">可执行文件</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:700;color:var(--accent-2);">0</div>
+        <div style="font-size:0.72rem;color:var(--text-3);margin-top:2px;">外部依赖</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:700;color:var(--green);">MIT</div>
+        <div style="font-size:0.72rem;color:var(--text-3);margin-top:2px;">开源协议</div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -948,85 +1397,243 @@
       ClipWheel
     </a>
     <div class="footer-links">
+      <a href="#whats-new">新特性</a>
       <a href="#features">功能</a>
+      <a href="#tech">技术</a>
       <a href="#roadmap">路线图</a>
-      <a href="https://github.com/chenyuhao0626/ClipWheel-" target="_blank" rel="noopener noreferrer">GitHub</a>
-      <a href="#">反馈建议</a>
+      <a href="https://github.com/FlashNovaYu/ClipWheel-" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://github.com/FlashNovaYu/ClipWheel-/issues" target="_blank" rel="noopener noreferrer">反馈建议</a>
     </div>
     <span class="footer-copy">&copy; 2026 ClipWheel Team</span>
   </div>
 </footer>
 
 <script>
-  // ── Wheel item orbit animation ──────────────────────────────────────────
-  // Items orbit around the center of .wheel-wrap using requestAnimationFrame.
-  // Only top/left are updated — transform stays as `translate(-50%,-50%)`
-  // which simply centres each card on its computed point. No conflict.
+  gsap.registerPlugin(ScrollTrigger);
+
+  // ── Wheel item orbit (keep rAF for continuous rotation) ──────────────────
   (function () {
     const wrap  = document.getElementById('wheelWrap');
     const items = [
-      document.getElementById('wi0'),
-      document.getElementById('wi1'),
-      document.getElementById('wi2'),
-      document.getElementById('wi3'),
+      document.getElementById('wi0'), document.getElementById('wi1'),
+      document.getElementById('wi2'), document.getElementById('wi3'),
     ];
-    const RADIUS   = 172;          // px from wrap centre
-    const DURATION = 30000;        // ms per full revolution
-    const TWO_PI   = Math.PI * 2;
-    // Evenly spread starting angles; offset so cards begin in nice positions
+    const RADIUS = 172, DURATION = 30000, TWO_PI = Math.PI * 2;
     const baseAngles = items.map((_, i) => (i / items.length) * TWO_PI - Math.PI / 2);
     let startTs = null;
-
     function tick(ts) {
       if (!startTs) startTs = ts;
       const elapsed = ts - startTs;
-      const progress = (elapsed % DURATION) / DURATION; // 0 → 1
-      const rotation = progress * TWO_PI;               // radians swept so far
-
-      const cx = wrap.offsetWidth  / 2;
-      const cy = wrap.offsetHeight / 2;
-
+      const rot = (elapsed % DURATION) / DURATION * TWO_PI;
+      const cx = wrap.offsetWidth / 2, cy = wrap.offsetHeight / 2;
       items.forEach((el, i) => {
-        const angle = baseAngles[i] + rotation;
-        const x = cx + RADIUS * Math.cos(angle);
-        const y = cy + RADIUS * Math.sin(angle);
-        el.style.left      = x + 'px';
-        el.style.top       = y + 'px';
+        const a = baseAngles[i] + rot;
+        el.style.left = (cx + RADIUS * Math.cos(a)) + 'px';
+        el.style.top  = (cy + RADIUS * Math.sin(a)) + 'px';
         el.style.transform = 'translate(-50%, -50%)';
       });
-
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
   })();
 
-  // ── Intersection Observer for reveal animations ──────────────────────────
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
-        observer.unobserve(e.target);
+  // ── Hero blobs parallax drift ───────────────────────────────────────────
+  gsap.to('.hero-blob-1', {
+    x: 80, y: 60, scale: 1.1,
+    scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1 }
+  });
+  gsap.to('.hero-blob-2', {
+    x: -70, y: -40, scale: 1.08,
+    scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1 }
+  });
+
+  // ── Hero text: staggered fade-up ────────────────────────────────────────
+  const heroTL = gsap.timeline({ defaults: { duration: 0.8, ease: 'power3.out' } });
+  heroTL.from('.hero-badge',  { y: 30, autoAlpha: 0 })
+        .from('.hero-title',  { y: 50, autoAlpha: 0 }, '-=0.5')
+        .from('.hero-sub',    { y: 40, autoAlpha: 0 }, '-=0.5')
+        .from('.hero-actions',{ y: 30, autoAlpha: 0 }, '-=0.4')
+        .from('.wheel-glow',  { scale: 0.3, autoAlpha: 0, duration: 1.2 }, '-=0.8')
+        .from('.wheel-svg-ring', { rotation: -30, scale: 0.8, autoAlpha: 0, duration: 1.4 }, '-=1.0')
+        .from('.wheel-hub',   { scale: 0, autoAlpha: 0, duration: 0.6, ease: 'back.out(2)' }, '-=0.5')
+        .from('.wheel-item',  { scale: 0, autoAlpha: 0, stagger: 0.12, duration: 0.5, ease: 'back.out(2)' }, '-=0.3');
+
+  // ── Stats bar: entrance + number count-up ────────────────────────────────
+  const statSpecs = [
+    { prefix: '&lt;', suffix: 'ms', val: 1 },
+    { prefix: '&lt;', suffix: 'MB', val: 3 },
+    { prefix: '',   suffix: 'fps', val: 60 },
+    { prefix: '',   suffix: '%', val: 100 },
+  ];
+  document.querySelectorAll('.stat-item').forEach((el, i) => {
+    ScrollTrigger.create({
+      trigger: el, start: 'top 90%', once: true,
+      onEnter: () => {
+        gsap.from(el, { y: 40, autoAlpha: 0, duration: 0.6, ease: 'power2.out' });
+        if (i < statSpecs.length) {
+          const s = statSpecs[i], numEl = el.querySelector('.stat-num');
+          const disp = { v: 0 };
+          gsap.to(disp, {
+            v: s.val, duration: 1.8, ease: 'power2.out',
+            onUpdate: () => {
+              numEl.innerHTML = s.prefix + '<span>' + Math.round(disp.v) + '</span>' + s.suffix;
+            }
+          });
+        }
       }
     });
-  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  });
 
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  // ── Bento cards: staggered entrance ─────────────────────────────────────
+  ScrollTrigger.batch('.bento-card', {
+    start: 'top 85%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, {
+        y: 60, autoAlpha: 0, duration: 0.7, stagger: 0.1,
+        ease: 'power3.out'
+      });
+    }
+  });
 
-  // Nav background on scroll
+  // ── "What's New" cards: staggered entrance ──────────────────────────────
+  ScrollTrigger.batch('.wn-card', {
+    start: 'top 82%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, {
+        y: 70, autoAlpha: 0, duration: 0.8, stagger: 0.12,
+        ease: 'power3.out'
+      });
+    }
+  });
+
+  // ── How-it-works: step-by-step reveal ───────────────────────────────────
+  ScrollTrigger.batch('.how-step', {
+    start: 'top 80%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, {
+        x: -30, autoAlpha: 0, duration: 0.6, stagger: 0.15,
+        ease: 'power2.out'
+      });
+    }
+  });
+
+  // ── Tech code window: typewriter reveal ─────────────────────────────────
+  ScrollTrigger.create({
+    trigger: '.code-window', start: 'top 75%', once: true,
+    onEnter: () => {
+      gsap.from('.code-window', {
+        y: 50, autoAlpha: 0, duration: 0.8, ease: 'power3.out',
+        onComplete: () => {
+          const lines = document.querySelectorAll('.code-body .line');
+          gsap.from(lines, {
+            autoAlpha: 0, x: -10, duration: 0.3, stagger: 0.1, ease: 'power2.out'
+          });
+        }
+      });
+    }
+  });
+
+  // ── Spec cards: staggered reveal ────────────────────────────────────────
+  ScrollTrigger.batch('.spec-card', {
+    start: 'top 85%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, {
+        scale: 0.9, autoAlpha: 0, duration: 0.5, stagger: 0.08, ease: 'back.out(1.5)'
+      });
+    }
+  });
+
+  // ── Roadmap / Changelog: timeline stagger ───────────────────────────────
+  ScrollTrigger.batch('.rm-item', {
+    start: 'top 85%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, {
+        y: 40, autoAlpha: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out'
+      });
+    }
+  });
+
+  // ── Quote card: dramatic reveal ─────────────────────────────────────────
+  ScrollTrigger.create({
+    trigger: '.quote-card', start: 'top 85%', once: true,
+    onEnter: () => {
+      gsap.from('.quote-card', { y: 60, autoAlpha: 0, duration: 1, ease: 'power3.out' });
+      gsap.from('.quote-text', { autoAlpha: 0, duration: 1.2, delay: 0.4 });
+    }
+  });
+
+  // ── Download section: scale-in + button pulse ───────────────────────────
+  ScrollTrigger.create({
+    trigger: '.dl-section', start: 'top 80%', once: true,
+    onEnter: () => {
+      const tl = gsap.timeline();
+      tl.from('.dl-section .eyebrow', { y: 30, autoAlpha: 0, duration: 0.5 })
+        .from('.dl-section .section-title', { y: 40, autoAlpha: 0, duration: 0.6 }, '-=0.3')
+        .from('.dl-section .section-sub', { y: 30, autoAlpha: 0, duration: 0.5 }, '-=0.3')
+        .from('.dl-btn', { scale: 0.8, autoAlpha: 0, duration: 0.7, ease: 'back.out(2)' }, '-=0.2')
+        .from('.dl-note', { autoAlpha: 0, duration: 0.4 }, '-=0.2');
+      // Continuous floating pulse on download button
+      gsap.to('.dl-btn', {
+        y: -6, duration: 2, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.5
+      });
+    }
+  });
+
+  // ── Section titles: underline sweep (decorative) ────────────────────────
+  ScrollTrigger.batch('.section-title', {
+    start: 'top 80%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, { y: 40, autoAlpha: 0, duration: 0.7, ease: 'power3.out' });
+    }
+  });
+  ScrollTrigger.batch('.section-sub', {
+    start: 'top 80%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, { y: 20, autoAlpha: 0, duration: 0.6, delay: 0.15, ease: 'power2.out' });
+    }
+  });
+  ScrollTrigger.batch('.eyebrow', {
+    start: 'top 82%', once: true,
+    onEnter: batch => {
+      gsap.from(batch, { y: 15, autoAlpha: 0, duration: 0.4, ease: 'power2.out' });
+    }
+  });
+
+  // ── Nav background on scroll ────────────────────────────────────────────
   const nav = document.querySelector('nav');
-  window.addEventListener('scroll', () => {
-    nav.style.background = window.scrollY > 20
-      ? 'rgba(6,6,8,0.95)'
-      : 'rgba(6,6,8,0.72)';
-  }, { passive: true });
+  ScrollTrigger.create({
+    start: 'top -60', end: 'max',
+    onEnter: () => { nav.style.background = 'rgba(6,6,8,0.95)'; },
+    onLeaveBack: () => { nav.style.background = 'rgba(6,6,8,0.72)'; }
+  });
 
-  // Wheel sector hover highlight (desktop)
-  document.querySelectorAll('.how-step').forEach(step => {
-    step.addEventListener('mouseenter', () => {
-      step.style.background = 'rgba(255,255,255,0.03)';
+  // ── Architecture flow nodes ─────────────────────────────────────────────
+  ScrollTrigger.create({
+    trigger: '.arch-flow', start: 'top 85%', once: true,
+    onEnter: () => {
+      gsap.from('.arch-node', {
+        scale: 0, autoAlpha: 0, duration: 0.5, stagger: 0.1, ease: 'back.out(2)'
+      });
+    }
+  });
+
+  // ── Footer reveal ───────────────────────────────────────────────────────
+  ScrollTrigger.create({
+    trigger: 'footer', start: 'top 95%', once: true,
+    onEnter: () => {
+      gsap.from('footer .footer-inner > *', {
+        y: 20, autoAlpha: 0, duration: 0.5, stagger: 0.08
+      });
+    }
+  });
+
+  // ── Wheel hover: pulse active item ──────────────────────────────────────
+  document.querySelectorAll('.wheel-item').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      gsap.to(el, { scale: 1.08, duration: 0.3, ease: 'power2.out' });
     });
-    step.addEventListener('mouseleave', () => {
-      step.style.background = '';
+    el.addEventListener('mouseleave', () => {
+      gsap.to(el, { scale: 1, duration: 0.3, ease: 'power2.out' });
     });
   });
 </script>
